@@ -1,5 +1,6 @@
 import pygame
 from sys import exit
+from random import randint
 
 WIDTH = 800
 HEIGHT = 400
@@ -30,6 +31,26 @@ def display_start_screen(score):
         score_rect = score_surf.get_rect(center = (400,325))
         screen.blit(score_surf, score_rect)
 
+def obstacle_movement(obstacle_list):
+    if obstacle_list:
+        for obstacle_rect in obstacle_list:
+            obstacle_rect.x -= 5
+            if obstacle_rect.bottom == 300:
+                screen.blit(snail_surface, obstacle_rect)
+            else:
+                screen.blit(fly_surface, obstacle_rect)
+
+        obstacle_list = [obstacle for obstacle in obstacle_rect_list if obstacle.x > -100]
+        return obstacle_list
+    else:
+        return []
+
+def collisions(player, obstacles):
+    if obstacles:
+        for obstacle_rect in obstacles:
+            if player.colliderect(obstacle_rect):
+                return False
+    return True
 
 pygame.init()
 
@@ -47,8 +68,11 @@ ground_surface = pygame.image.load(graphics_path+'ground.png').convert_alpha()
 # score_surface = test_font.render('My game', False, (64,64,64))
 # score_rect = score_surface.get_rect(center = (WIDTH/2,50))
 
+# Obstacles
 snail_surface = pygame.image.load(graphics_path+'snail/snail1.png').convert_alpha()
-snail_rect = snail_surface.get_rect(midbottom = (0,300))
+fly_surface = pygame.image.load(graphics_path+'Fly/Fly1.png').convert_alpha()
+
+obstacle_rect_list = []
 
 player_surf = pygame.image.load(graphics_path+'Player/player_walk_1.png').convert_alpha()
 player_rect = player_surf.get_rect(midbottom = (80,300))
@@ -57,6 +81,10 @@ player_gravity = 0
 player_stand = pygame.image.load(graphics_path + 'Player/player_stand.png')
 player_stand_scaled = pygame.transform.rotozoom(player_stand,0,2)
 player_stand_rect = player_stand_scaled.get_rect(center = (400,200))
+
+# Timer
+obstacle_timer = pygame.USEREVENT + 1
+pygame.time.set_timer(obstacle_timer, 1500)
 
 while True:
     for event in pygame.event.get():
@@ -75,9 +103,13 @@ while True:
         else:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 game_active = True
-                snail_rect.left = 800
                 start_time = int(pygame.time.get_ticks()/1000)
 
+        if event.type == obstacle_timer and game_active:
+            if randint(0,2):
+                obstacle_rect_list.append(snail_surface.get_rect(midbottom = (randint(900,1100),300)))
+            else:
+                obstacle_rect_list.append(fly_surface.get_rect(midbottom = (randint(900,1100),210)))
 
 
     if game_active:
@@ -91,8 +123,10 @@ while True:
         # screen.blit(score_surface,score_rect)
         score = display_score()
 
-        snail_rect.x -= 5
-        screen.blit(snail_surface, snail_rect)
+        # snail_rect.x -= 5
+        # screen.blit(snail_surface, snail_rect)
+        # if snail_rect.x < -28:
+        #     snail_rect.x = WIDTH + 12
         
         # Player
         player_gravity += 1
@@ -100,12 +134,15 @@ while True:
         if player_rect.bottom >= 300: player_rect.bottom = 300
         screen.blit(player_surf,player_rect)
 
+        # Obstacle movement
+        obstacle_rect_list = obstacle_movement(obstacle_rect_list)
+
+        # Collision
+        game_active = collisions(player_rect, obstacle_rect_list)
+
         # keys = pygame.key.get_pressed()
         # if keys[pygame.K_SPACE]:
         #     print("jump")
-
-        if snail_rect.x < -28:
-            snail_rect.x = WIDTH + 12
         
         # if player_rect.colliderect(snail_rect):
         #     print('collision')
@@ -113,10 +150,11 @@ while True:
         # mouse_pos = pygame.mouse.get_pos()
         # if player_rect.collidepoint((mouse_pos)):
         #     print('colision')
-
-        if snail_rect.colliderect(player_rect):
-            game_active = False
     else:
+        obstacle_rect_list.clear()
+        player_rect.midbottom = (80,300)
+        player_gravity = 0
+        
         screen.fill((94,128,162))
         screen.blit(player_stand_scaled, player_stand_rect)
         display_start_screen(score)
