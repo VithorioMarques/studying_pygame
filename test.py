@@ -52,6 +52,17 @@ def collisions(player, obstacles):
                 return False
     return True
 
+def player_animation():
+    global player_surf, player_index
+    # play walking animation if the player is on the floor
+    # display the jump surface when player is not on floor
+    if player_rect.bottom < 300:
+        player_surf = player_jump
+    else:
+        player_index += 0.1
+        if player_index >= len(player_walk):player_index = 0
+        player_surf = player_walk[int(player_index)]
+
 pygame.init()
 
 screen = pygame.display.set_mode((WIDTH,HEIGHT))
@@ -69,12 +80,27 @@ ground_surface = pygame.image.load(graphics_path+'ground.png').convert_alpha()
 # score_rect = score_surface.get_rect(center = (WIDTH/2,50))
 
 # Obstacles
-snail_surface = pygame.image.load(graphics_path+'snail/snail1.png').convert_alpha()
-fly_surface = pygame.image.load(graphics_path+'Fly/Fly1.png').convert_alpha()
+snail_frame1 = pygame.image.load(graphics_path+'snail/snail1.png').convert_alpha()
+snail_frame2 = pygame.image.load(graphics_path+'snail/snail2.png').convert_alpha()
+snail_frames = [snail_frame1, snail_frame2]
+snail_frame_index = 0
+snail_surface = snail_frames[snail_frame_index]
+
+fly_frame1   = pygame.image.load(graphics_path+'Fly/Fly1.png').convert_alpha()
+fly_frame2   = pygame.image.load(graphics_path+'Fly/Fly2.png').convert_alpha()
+fly_frames   = [fly_frame1, fly_frame2]
+fly_frame_index = 0
+fly_surface  = fly_frames[fly_frame_index]
 
 obstacle_rect_list = []
 
-player_surf = pygame.image.load(graphics_path+'Player/player_walk_1.png').convert_alpha()
+player_walk1 = pygame.image.load(graphics_path+'Player/player_walk_1.png').convert_alpha()
+player_walk2 = pygame.image.load(graphics_path+'Player/player_walk_2.png').convert_alpha()
+player_walk = [player_walk1, player_walk2]
+player_index = 0
+player_jump = pygame.image.load(graphics_path+'Player/jump.png').convert_alpha()
+
+player_surf = player_walk[player_index]
 player_rect = player_surf.get_rect(midbottom = (80,300))
 player_gravity = 0
 
@@ -85,6 +111,12 @@ player_stand_rect = player_stand_scaled.get_rect(center = (400,200))
 # Timer
 obstacle_timer = pygame.USEREVENT + 1
 pygame.time.set_timer(obstacle_timer, 1500)
+
+snail_animation_timer = pygame.USEREVENT + 2
+pygame.time.set_timer(snail_animation_timer, 500)
+
+fly_animation_timer   = pygame.USEREVENT + 3
+pygame.time.set_timer(fly_animation_timer, 200)
 
 while True:
     for event in pygame.event.get():
@@ -105,11 +137,22 @@ while True:
                 game_active = True
                 start_time = int(pygame.time.get_ticks()/1000)
 
-        if event.type == obstacle_timer and game_active:
-            if randint(0,2):
-                obstacle_rect_list.append(snail_surface.get_rect(midbottom = (randint(900,1100),300)))
-            else:
-                obstacle_rect_list.append(fly_surface.get_rect(midbottom = (randint(900,1100),210)))
+        if game_active:
+            if event.type == obstacle_timer:
+                if randint(0,2):
+                    obstacle_rect_list.append(snail_surface.get_rect(midbottom = (randint(900,1100),300)))
+                else:
+                    obstacle_rect_list.append(fly_surface.get_rect(midbottom = (randint(900,1100),210)))
+
+            if event.type == snail_animation_timer:
+                if snail_frame_index == 0: snail_frame_index = 1
+                else: snail_frame_index = 0
+                snail_surface = snail_frames[snail_frame_index]
+
+            if event.type == fly_animation_timer:
+                if fly_frame_index == 0: fly_frame_index = 1
+                else: fly_frame_index = 0
+                fly_surface = fly_frames[fly_frame_index]
 
 
     if game_active:
@@ -132,6 +175,8 @@ while True:
         player_gravity += 1
         player_rect.y += player_gravity
         if player_rect.bottom >= 300: player_rect.bottom = 300
+
+        player_animation()
         screen.blit(player_surf,player_rect)
 
         # Obstacle movement
@@ -154,7 +199,7 @@ while True:
         obstacle_rect_list.clear()
         player_rect.midbottom = (80,300)
         player_gravity = 0
-        
+
         screen.fill((94,128,162))
         screen.blit(player_stand_scaled, player_stand_rect)
         display_start_screen(score)
